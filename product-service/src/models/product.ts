@@ -15,13 +15,15 @@ interface ProductAttrs {
 const productSchema = new mongoose.Schema({
 	productId: { type: String, required: true, unique: true },
   productName: { type: String, required: true},
-  productSKU: { type: String, required: true},
+  productSKU: { type: String, required: true, unique: true },
 	productPrice: { type: Number, required: true },
-	productWeight: { type: Number },
+	productWeight: { type: Number, required: true },
 	productImage: { type: String },
-	productDescription: { type: String },
+	productShortDescription: { type: String, required: true },
+	productLongDescription: { type: String },
 	productCategory: { type: String  },
-	productStock: { type: Number, required: true },
+	productStock: { type: Number, required: true, default: 0 },
+	isDeleted: { type: Boolean, required: true, default: false }
 }, { timestamps: true });
 
 const Product = mongoose.model<ProductAttrs>("Product", productSchema);
