@@ -6,7 +6,9 @@ import { getAllCurrentProductsWithPagination,
   updateProductById,
   updateProductPriceById,
   updateProductStockById,
-  getProductBySKU
+  getProductBySKU,
+  getLowStockProducts,
+  searchProducts
 } from "../controllers/product.controller.js";
 
 import multer from "multer";
@@ -17,10 +19,12 @@ const upload = multer({
 
 const router = Router();
 
-
+// this order matters: more specific routes should be defined before less specific ones
 router.get("/", getAllCurrentProductsWithPagination);
-router.get("/:productId", getProductById);
 router.get("/sku/:productSKU", getProductBySKU);
+router.get("/low-stock", getLowStockProducts);
+router.get("/search", searchProducts);
+router.get("/id/:productId", getProductById);
 
 router.put("/:productId", updateProductById);
 router.patch("/:productId/price", updateProductPriceById);

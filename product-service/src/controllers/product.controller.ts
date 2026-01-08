@@ -78,7 +78,7 @@ export const getProductBySKU = async (req:Request, res:Response) => {
   try {
     const { productSKU } = req.params;
 
-    const product = await Product.findOne({ equals:{ productSKU, isDeleted: false }}).exec();
+    const product = await Product.findOne({ productSKU, isDeleted: false }).exec();
     if (!product) {
       return res.status(404)
         .json({ message: "Product not found", status: "error" });
@@ -95,6 +95,107 @@ export const getProductBySKU = async (req:Request, res:Response) => {
     res.status(500).json({ message: "Internal Server Error", status: "error", trace: error});
   }
 }
+
+
+/**
+ * Fetch all the low stock products
+ * GET products/low-stock
+ */
+export const getLowStockProducts = async (req: Request, res: Response) => {
+  try {
+    const { threshold = 50, page = 1, limit = 10 } = req.query;
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+    const skip = (pageNumber - 1) * limitNumber;
+    
+    const totalCount = await Product.countDocuments({ 
+      productStock: { $gte: 0, $lte: Number(threshold) } 
+    });
+    
+    const products = await Product.find({ 
+      productStock: { $gte: 0, $lte: Number(threshold) } 
+    })
+      .limit(limitNumber)
+      .skip(skip)
+      .sort({ productStock: 1 });
+    
+    res.status(200).json({
+      message: "Low stock products fetched successfully",
+      products,
+      threshold: Number(threshold),
+      pagination: {
+        total: totalCount,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(totalCount / limitNumber),
+      },
+      status: "success",
+    });
+  } catch (error) {
+    console.error("Get Low Stock Products Error:", error);
+    res.status(500).json({ message: "Internal Server Error", status: "error" });
+  }
+};
+
+
+
+/**
+ * Search for products
+ * GET /product/search?q=
+ */
+export const searchProducts = async (req: Request, res: Response) => {
+  try {
+    const { q, minPrice, maxPrice, offset = 1, limit = 10 } = req.query;
+    const page = parseInt(offset as string, 10) || 1;
+    const size = parseInt(limit as string, 10) || 10;
+    const skip = (page - 1) * size;
+    if (!q || q === "") {
+      return res.status(400)
+        .json({
+          message: "Bad Request. Search query is required",
+          status: "error",
+        });
+    }
+
+    const conditions: any[] = [{ isDeleted: false }, { $text: { $search: q as string } }];
+    if (minPrice !== undefined && maxPrice !== undefined) {
+      conditions.push({ productPrice: { $gte: Number(minPrice), $lte: Number(maxPrice) } });
+    } else if( minPrice !== undefined) {
+      conditions.push({ productPrice: { $gte: Number(minPrice) } });
+    } else if (maxPrice !== undefined) {
+      conditions.push({ productPrice: { $lte: Number(maxPrice) } });
+    }
+
+    const query = { $and: conditions };
+    
+    const products = await Product.find(query, { score: { $meta: "textScore" } })
+      .sort({ score: { $meta: "textScore" } })
+      .skip(skip)
+      .limit(size)
+      .lean()
+      .exec();
+
+    const productsCount = await Product.countDocuments(query)
+      .exec();
+
+    
+    res.status(200).json({
+      message: "Searched products fetched successfully",
+      products,
+      pagination: {
+        total: productsCount,
+        page,
+        limit: size,
+        totalPages: Math.ceil(productsCount / size),
+      },
+      status: "success",
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal Server Error", status: "error", trace: error});
+  } 
+};
 
 
 interface CreateProductRequest {
@@ -133,7 +234,7 @@ export const createProduct = async (req: Request, res: Response) => {
     const generatedSKU = generateSKU(name, shortDescription, category);
     
     //check if the porduct already exists with the same SKU
-    const existingProduct = await Product.findOne({ equals: { productSKU: generatedSKU, isDeleted: false }}).limit(1).exec();
+    const existingProduct = await Product.findOne({ productSKU: generatedSKU, isDeleted: false }).limit(1).exec();
     if (existingProduct) {
       return res.status(409).json({
         message: "Product already exists with the same SKU",
@@ -179,7 +280,7 @@ export const updateProductById = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
     const updateData = req.body;
-    const product = await Product.findOne({ equals:{ productId, isDeleted: false }}).limit(1).exec();
+    const product = await Product.findOne({ productId, isDeleted: false }).limit(1).exec();
     if (!product) {
       return res
         .status(404)
