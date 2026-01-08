@@ -4,6 +4,40 @@
 * Implmented Soft-deleting, i.e. a technique where records are not permanently removed from the database but are instead marked as deleted, typically using a flag like `isDeleted`. It helps in Data Recovery, Auditing, Historial Analysis. I used a isDeleted flag for each product.
 
 
+## Get Started
+
+Follow these steps to set up and run the Product-Service:
+
+1. **Clone the Repository**  
+  Clone the repository to your local machine using the following command:  
+  ```bash
+  git clone https://github.com/vishnuprasad2004/ecommerce-microservices.git
+  ```
+
+2. **Set Up Environment Variables**  
+  Create a `.env` file in the root directory of the `product-service` folder. Use the `.env.example` file as a reference to define all the required environment variables, such as the MongoDB connection string, AWS keys, and other configurations.
+
+3. **Build the Docker Image**  
+  Build the Docker image for the Product-Service using the following command:  
+  ```bash
+  docker build -t product-service .
+  ```
+
+4. **Run the Docker Container**  
+  Start the Product-Service by running the Docker container with the following command:  
+  ```bash
+  docker run -p 3001:3001 --env-file .env product-service
+  ```
+
+5. **Access the Service**  
+  Once the container is running, the Product-Service will be accessible at `http://localhost:3001`.
+
+6. **Verify the Setup**  
+  Test the endpoints using tools like Postman or cURL to ensure the service is running correctly.
+
+---
+
+
 ### All Product Retrieval Action Analysis:
 * Time Taken: 2.87 s
 
