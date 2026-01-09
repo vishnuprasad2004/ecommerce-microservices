@@ -10,7 +10,22 @@ In the Product Microservice, I implemented:
 - [Mastering API Pagination: Best Practices for Performance & Scalability](https://medium.com/@khanshahid9283/mastering-api-pagination-best-practices-for-performance-scalability-ca16980bc8f0)
 - [Integrate AWS S3 with Your Node.js Project: A Step-by-Step Guide](https://mrfreelancer9.medium.com/integrate-aws-s3-with-your-node-js-project-a-step-by-step-guide-f7f160ea8d29)
 - [Design E-Commerce Applications with Microservices Architecture](https://medium.com/design-microservices-architecture-with-patterns/design-e-commerce-applications-with-microservices-architecture-c69e7f8222e7)
+- [How To Perform Full-text Search in MongoDB
+](https://www.digitalocean.com/community/tutorials/how-to-perform-full-text-search-in-mongodb)
 <!-- - [How to Choose a Database for Microservices — CAP Theorem](https://medium.com/design-microservices-architecture-with-patterns/how-to-choose-a-database-for-microservices-cap-theorem-d1585bf40ecd) -->
+
+
+#### Advantages of having Mircoservice Architecture (these are what I observed):
+1. Isolated Scaling, Deployment and Monitoring
+2. It's modular, multiple devs can work independently on different modules
+3. If any error occurs in one module, no need to stop all the services
+4. Multiple languages can be used (Go, Java, JS, Python etc) each can be used for its features and advantages, like python can be used for ML-related services, Go and Java can be used for concurrency and robust services, node.js can be used for lightweight services (rapid development).
+
+#### Disadvantages of having Mircoservice Architecture (these are what I observed):
+1. Too complex to implement for simple backend systems, imagine having to track multiple services' deployments, monitoring and maintainance 
+2. Communication and Data Transfer complexity is too much and can raise issues.
+3. Data Management Challenges, handling multiple DBs hence handing data between Relational and Non-relational Dbs is challenging.
+4. Testing Overhead, too many things to test
 
 
 ## Tech Stack:
