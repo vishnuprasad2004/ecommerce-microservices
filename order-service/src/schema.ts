@@ -1,31 +1,35 @@
-import { integer, numeric, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, numeric, pgTable, serial, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 
-export const order  = pgTable("order", {
+export const orders  = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull(),
   orderDate: timestamp("order_date").notNull(),
-  orderStatus: uuid("order_status").notNull(),
+  orderStatus: integer("order_status").notNull().references(() => orderStatus.id),
   orderPrice: numeric("order_price").notNull(),
-  orderAddress: uuid("order_address").notNull(),
-  orderCity: uuid("order_city").notNull(),
-  orderState: uuid("order_state").notNull(),
-  orderCountry: uuid("order_country").notNull(),
-  orderZip: uuid("order_zip").notNull(),
-  orderEmail: uuid("order_email").notNull(),
+  orderAddress: text("order_address").notNull(),
+  orderCity: text("order_city").notNull(),
+  orderState: text("order_state").notNull(),
+  orderCountry: text("order_country").notNull(),
+  orderZip: text("order_zip").notNull(),
+  orderEmail: text("order_email").notNull(),
   orderTax: integer("order_tax").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  isDeleted: boolean("is_deleted").default(false)
 });
 
 
-export const orderItem  = pgTable("order_item", {
+export const orderItems  = pgTable("order_items", {
   id: uuid("id").primaryKey().defaultRandom(),
-  orderId: uuid("order_id").notNull(),
+  orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: 'cascade' }),
   productId: uuid("product_id").notNull(),
   quantity: numeric("quantity").notNull(),
   itemPrice: numeric("item_price").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const orderStatus  = pgTable("order_status", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: serial("id").primaryKey(),
   statusName: uuid("status_name").notNull(),
 });

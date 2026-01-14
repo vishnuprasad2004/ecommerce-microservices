@@ -12,8 +12,7 @@ const app = express();
 
 // k8s health check probe endpoint
 app.get('/health', (req, res) => {
-  res
-    .status(200)
+  res.status(200)
     .json({ message: 'Order Service is up and running', service: 'Order Service' });
 });
 
