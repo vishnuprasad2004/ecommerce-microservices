@@ -215,6 +215,63 @@ export const createUser = async (req: Request, res: Response) => {
   }
 };
 
+
+/**
+ * Update the info of a user
+ * PUT /users/:id 
+ */
+export const updateUserInfoById = async (req: Request, res:Response) => {
+  try {
+    const userId = req.params.id as string;
+    const { name, email, phone } = req.body;
+
+    // validations for email format, phone format, 
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        message: "Invalid email format",
+        status: "error",
+      });
+    }
+
+    if(!/^[0-9]{10}$/.test(phone)) {
+      return res.status(400).json({
+        message: "Invalid phone format. It should be 10 digits.",
+        status: "error",
+      });
+    }
+
+
+
+    const updatedUser = await db
+      .update(users)
+      .set({
+        name,
+        phone,
+        email,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (updatedUser.length === 0) {
+      return res.status(404).json({
+        message: "User not found",
+        status: "error",
+      });
+    }
+
+    res.status(200).json({
+      message: "User updated successfully",
+      status: "success",
+      data: updatedUser,
+    });
+
+  } catch(error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error", status: "error", trace: error });
+  }
+}
+
 /**
  * Delete user by ID (soft delete)
  * DELETE /users/:id

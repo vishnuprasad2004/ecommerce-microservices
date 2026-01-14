@@ -47,3 +47,10 @@ Follow these steps to set up and run the Product-Service:
 - [ ] Role-based access control (RBAC)
 - [ ] Session management
 
+## Routes to be implemented for future
+- POST /auth/login - User login
+- POST /auth/logout - User logout
+- POST /auth/refresh - Refresh access token
+- POST /auth/verify-email/:token - Verify email
+- POST /auth/forgot-password - Request password reset
+- POST /auth/reset-password/:token - Reset password
