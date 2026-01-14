@@ -6,6 +6,10 @@ In the Product Microservice, I implemented:
 2. Storage for the Product Images in AWS S3 Bucket
 3. Database being MongoDB, it was chosen as the database due to its suitability for scenarios with a high View-to-Update ratio (approximately 3%), indicating significantly more read operations compared to write operations.
 
+## 2. User Service
+In the User Microservice, I Implemented:
+1. Database being PostgreSQL, for relational and transactional operations
+
 ### Refernces:
 - [Mastering API Pagination: Best Practices for Performance & Scalability](https://medium.com/@khanshahid9283/mastering-api-pagination-best-practices-for-performance-scalability-ca16980bc8f0)
 - [Integrate AWS S3 with Your Node.js Project: A Step-by-Step Guide](https://mrfreelancer9.medium.com/integrate-aws-s3-with-your-node-js-project-a-step-by-step-guide-f7f160ea8d29)
