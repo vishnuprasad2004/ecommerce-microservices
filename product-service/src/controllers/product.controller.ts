@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
 import Product from "../models/product.js";
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4, validate } from "uuid";
 import generateSKU from "../utils/genSKU.js";
 import uploadToS3 from "../utils/uploadToS3.js";
+import mongoose from "mongoose";
 
 /**
  * Get all the products in the platform with pagination
@@ -49,6 +50,12 @@ export const getAllCurrentProductsWithPagination = async (req: Request, res: Res
 export const getProductById = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
+    if(!validate(productId)) {
+      res.status(400).json({
+        message: "Product Id is invalid",
+        status: "error"
+      })
+    } 
 
     const product = await Product.findOne({ productId, isDeleted: false }).exec();
     if (!product) {
@@ -136,6 +143,46 @@ export const getLowStockProducts = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal Server Error", status: "error" });
   }
 };
+
+
+/**
+ * Get product availablity
+ * GET products/availability
+ */
+export const getProductAvailability = async (req: Request, res: Response) => {
+  try { 
+    const { itemIds }: {itemIds:Array<string>} = req.body;
+    const itemIdsValidity = itemIds.map((itemId) => {
+      return validate(itemId)
+    });
+
+    const areValid = itemIdsValidity.reduce((acc, curr) => {
+      return acc && curr;
+    }, true);
+
+    if (!areValid) {
+      return res.status(400).json({
+        message: "One or more itemIds are invalid",
+        status: "error",
+      });
+    }
+
+    const products = await Product.find({ productId: { $in: itemIds }}, { 
+      productPrice:1, 
+      productStock: 1, 
+      productName:1,
+      productSKU:1 
+    });
+    res.status(200).json({
+      status: "success",
+      message: "Got all the product",
+      data: products
+    })
+  } catch (error) {
+    console.error("Error during getting Product Availablity :", error);
+    res.status(500).json({ message: "Error during getting Product Availablity", status: "error" });
+  }
+}
 
 
 
@@ -324,8 +371,73 @@ export const updateProductPriceById = async (req: Request, res: Response) => {
   }
 };
 
+
+
 /**
- * Update product stock by product ID
+ * Deduct the stock of the products in the order
+ * PATCH products/deduct-stock
+ */
+export const deductMultipleProductStock = async (req:Request, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { items }: {items:Array<{productId:string, quantity:number}>} = req.body;
+    
+    
+    const itemIdsValidity = items.map((item) => {
+      return validate(item.productId)
+    });
+
+    const areValid = itemIdsValidity.reduce((acc, curr) => {
+      return acc && curr;
+    }, true);
+
+    if (!areValid) {
+      return res.status(400).json({
+        message: "One or more items are invalid",
+        status: "error",
+      });
+    }
+
+    for (const item of items) {
+      const updated = await Product.findOneAndUpdate(
+        {
+          productId: item.productId,
+          isDeleted: false,
+          productStock: { $gte: item.quantity }
+        },
+        {
+          $inc: { productStock: -item.quantity }
+        },
+        { new: true, session }
+      );
+
+      if (!updated) {
+        throw new Error("INSUFFICIENT_STOCK");
+      }
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      message: "Stock deducted successfully",
+      status: "success"
+    })
+  } catch(error) {
+    await session.abortTransaction();
+    session.endSession();
+
+    return res.status(409).json({
+      message: "Insufficient stock for one or more items",
+      status: "error"
+    });
+  }
+}
+
+
+/**
+ * Update product stock by product ID (no validation, for admins)
  * PATCH /products/:productId/stock
  */
 export const updateProductStockById = async (req: Request, res: Response) => {
