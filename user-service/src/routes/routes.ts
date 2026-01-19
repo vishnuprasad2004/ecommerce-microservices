@@ -10,12 +10,14 @@ import {
 import { 
   addAddressForUserById, 
   deleteAddressById, 
+  getAddressById, 
   getAddressesByUserId 
 } from "../controllers/address.controller.js";
 
 const router = Router();
 
 router.get("/", getAllUsersWithPagination);
+router.get("/address/:addressId", getAddressById);
 router.get("/:id", getUserInfoById);
 router.get("/:id/credentials", getUserCredentialsById);
 
