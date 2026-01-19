@@ -9,6 +9,38 @@ import { and, eq } from "drizzle-orm";
 
 const CHECK_VIOLATION_CODE = "23514"; // PostgreSQL error code for check constraint violation
 
+
+/**
+  * Fetch address by address ID
+  * GET users/address/:addressId
+  */
+export const getAddressById = async (req: Request, res: Response) => {
+  try { 
+    const addressId = req.params.addressId as string;
+    const addr = await db
+      .select()
+      .from(address)
+      .where(eq(address.id, addressId))
+      .limit(1);
+    if (addr.length === 0) {
+      return res.status(404).json({
+        message: "Address not found",
+        status: "error",
+      });
+    }
+    res.status(200).json({
+      message: "Address retrieved successfully",
+      status: "success",
+      data: addr[0],
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal Server Error", status: "error", trace: error });
+  }
+};
+
+
+
 /**
   * Fetch all addresses for a user by user ID
   * GET users/:id/addresses
