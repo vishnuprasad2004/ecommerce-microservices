@@ -168,6 +168,7 @@ export const getProductAvailability = async (req: Request, res: Response) => {
     }
 
     const products = await Product.find({ productId: { $in: itemIds }}, { 
+      productId: 1,
       productPrice:1, 
       productStock: 1, 
       productName:1,
