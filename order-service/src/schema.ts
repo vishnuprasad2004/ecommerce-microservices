@@ -4,7 +4,6 @@ import { boolean, integer, numeric, pgTable, serial, text, timestamp, uuid } fro
 export const orders  = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull(),
-  orderDate: timestamp("order_date").notNull(),
   orderStatus: integer("order_status").notNull().references(() => orderStatus.id),
   orderPrice: numeric("order_price").notNull(),
   orderAddress: text("order_address").notNull(),
@@ -12,7 +11,8 @@ export const orders  = pgTable("orders", {
   orderState: text("order_state").notNull(),
   orderCountry: text("order_country").notNull(),
   orderZip: text("order_zip").notNull(),
-  orderEmail: text("order_email").notNull(),
+  phone: text("phone").notNull(),
+  email: text("order_email").notNull(),
   orderTax: integer("order_tax").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -30,6 +30,6 @@ export const orderItems  = pgTable("order_items", {
 });
 
 export const orderStatus  = pgTable("order_status", {
-  id: serial("id").primaryKey(),
+  id: integer("id").primaryKey(),
   statusName: uuid("status_name").notNull(),
 });
