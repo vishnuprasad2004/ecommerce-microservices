@@ -70,7 +70,9 @@ export const createOrder = async (req: Request, res: Response) => {
 
     //validate the user and the shipping address here
 
-    const user = await fetch(`http://localhost:3002/users/${userId}`);
+    const user = await fetch(`http://localhost:3002/api/users/${userId}`);
+    console.log(`User validation response :`, user);
+    
     if(user.status !== 200) {
       return res.status(400).json({
         message: 'Invalid userId',
@@ -79,7 +81,8 @@ export const createOrder = async (req: Request, res: Response) => {
     }
 
     const address = shippingAddress || await (async () => {
-      const res = await fetch(`http://localhost:3002/address/${shippingAddressId}`);
+      const res = await fetch(`http://localhost:3002/api/address/${shippingAddressId}`);
+      console.log(`Address validation response :`, res);
       if(res.status !== 200) {
         throw new Error('Invalid shippingAddressId');
       }
@@ -87,16 +90,16 @@ export const createOrder = async (req: Request, res: Response) => {
     })();
 
     // check for product availability and get product prices -> for this I made a bulk fetch POST API in product-service
-    const productAvailabilityResponse = await fetch(`http://localhost:3001/products/availability`, {
+    const productAvailabilityResponse = await fetch(`http://localhost:3001/api/products/availability`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        productIds: items.map(item => item.productId),
+        itemIds: items.map(item => item.productId),
       }),
     });
-
+    console.log(`Product availability response :`, productAvailabilityResponse);
     if (productAvailabilityResponse.status !== 200) {
       return res.status(400).json({
         message: 'Error checking product availability',
@@ -104,30 +107,32 @@ export const createOrder = async (req: Request, res: Response) => {
       });
     }
     const productData = await productAvailabilityResponse.json();
+    console.log(`Product data :`, productData);
 
     // calculate the total price with tax, discounts, shippingcost and coupons ... for now only total price and static tax value
     let subtotal = 0;
     
     for (const item of items) {
-      const product = productData.data.find((p: any) => p.id === item.productId);
-      if (!product || product.stock < item.quantity) {
+      const product = productData.data.find((p: any) => p.productId === item.productId);
+      console.log(`Product for item ${item.productId} :`, product);
+      if (!product || product.productStock < item.quantity) {
         return res.status(400).json({
           message: `Product ${item.productId} is out of stock or insufficient quantity`,
           status: 'error',
         });
       }
-      subtotal += product.price * item.quantity;
+      subtotal += product.productPrice * item.quantity;
     }
 
-    let tax = orderTax || 0;
+    let tax = Number(orderTax) || 0;
     let orderPrice = subtotal + (subtotal * tax) / 100;
 
     const orderStatus = 1;
     
     // deduce the stock in product-service
     try {
-      const stockUpdateResponse = await fetch(`http://localhost:3001/products/deduct-stock`, {
-        method: 'POST',
+      const stockUpdateResponse = await fetch(`http://localhost:3001/api/products/deduct-stock`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -138,6 +143,7 @@ export const createOrder = async (req: Request, res: Response) => {
           })),
         }),
       });
+      console.log(`Stock update response :`, stockUpdateResponse);
 
       if (stockUpdateResponse.status !== 200) {
         return res.status(400).json({
@@ -153,6 +159,7 @@ export const createOrder = async (req: Request, res: Response) => {
       });
     }
 
+    
     // insert into orders table and get the order id
     const newOrder = await db.transaction(async (tx) => {
       // 1️⃣ Insert order
@@ -169,7 +176,7 @@ export const createOrder = async (req: Request, res: Response) => {
           orderState: address.state,
           orderCountry: address.country,
           orderZip: address.zip,
-          orderTax,
+          orderTax: tax,
 
         })
         .returning();
@@ -180,7 +187,7 @@ export const createOrder = async (req: Request, res: Response) => {
           orderId: order!.id,
           productId: item.productId,
           quantity: item.quantity.toString(),
-          itemPrice: productData.data.find((p: any) => p.id === item.productId).price.toString(),
+          itemPrice: productData.data.find((p: any) => p.productId === item.productId).productPrice.toString(),
         }))
       );
 
@@ -205,12 +212,12 @@ export const createOrder = async (req: Request, res: Response) => {
   }
 };
 
-export const getOrder = (req: Request, res: Response) => {
+export const getOrder = async(req: Request, res: Response) => {
   const orderId = req.params.id as string;
   // Logic to get an order by ID
   try {
 
-    const orderDetails = db.select().from(orders).where(and(eq(orders.id, orderId), eq(orders.isDeleted, false)));
+    const orderDetails = await db.select().from(orders).where(and(eq(orders.id, orderId), eq(orders.isDeleted, false)));
 
     res.status(200).json({ 
       message: `Order details for ID: ${orderId}`,

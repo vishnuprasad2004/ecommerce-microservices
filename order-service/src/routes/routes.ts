@@ -4,7 +4,7 @@ import { createOrder, getOrder, listOrders } from "../controllers/orders.control
 const router = Router();
 
 router.get("/list", listOrders);
-router.get("/:orderId", getOrder);
+router.get("/:id", getOrder);
 
 router.post("/", createOrder);
 
