@@ -2,7 +2,15 @@ import { Request, Response } from "express";
 import { db } from "../db.js";
 import { orders, orderItems } from "../schema.js";
 
-import { and, eq } from "drizzle-orm";
+import { and, count, eq, gte, lte, sql } from "drizzle-orm";
+import { validate } from "uuid";
+
+
+const ORDER_STATUS_CREATED = 1;
+const ORDER_STATUS_PAID = 2;
+const ORDER_STATUS_SHIPPED = 3;
+const ORDER_STATUS_DELIVERED = 4;
+const ORDER_STATUS_CANCELLED = 5;
 
 /**
  * 
@@ -47,6 +55,11 @@ type CreateOrderRequest = {
   orderTax: number;
 };
 
+
+/**
+ * Create a new order
+ * POST /orders/
+ */
 export const createOrder = async (req: Request, res: Response) => {
   //transactional logic to create order and order items
   // get all the information from req.body
@@ -212,12 +225,35 @@ export const createOrder = async (req: Request, res: Response) => {
   }
 };
 
+
+/**
+ * Get details of an order by ID
+ * GET /orders/:id
+ */
 export const getOrder = async(req: Request, res: Response) => {
   const orderId = req.params.id as string;
   // Logic to get an order by ID
   try {
 
-    const orderDetails = await db.select().from(orders).where(and(eq(orders.id, orderId), eq(orders.isDeleted, false)));
+    const orderDetails = await db
+      .select({
+        id: orders.id,
+        status: orders.orderStatus,
+        items: sql`
+          json_agg(order_items.*)
+          FILTER (WHERE order_items.id IS NOT NULL)
+        `
+      })
+      .from(orders)
+      .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
+      .where(
+        and(
+          eq(orders.id, orderId),
+          eq(orders.isDeleted, false)
+        )
+      )
+      .groupBy(orders.id);
+
 
     res.status(200).json({ 
       message: `Order details for ID: ${orderId}`,
@@ -235,20 +271,305 @@ export const getOrder = async(req: Request, res: Response) => {
   }
 }
 
-export const listOrders = (req: Request, res: Response) => {
-  // Logic to list all orders
-  res.status(200).json({ message: "List of all orders" });
+
+/**
+ * Get all orders for a specific user
+ * GET /orders/user/:userId
+ */
+export const getUserOrders = async(req: Request, res: Response) => {
+  const userId = req.params.userId as string;
+  const { offset = 1, limit = 10 } = req.query;
+  const page = parseInt(offset as string, 10) || 1;
+  const size = parseInt(limit as string, 10) || 10;
+  const skip = (page - 1) * size;
+  // Logic to get all orders for a specific user
+  try {
+    if (!userId || !validate(userId)) {
+      return res.status(400).json({
+        message: 'Invalid userId',
+        status: 'error',
+      });
+    }
+
+    const totalOrdersCount = await db.select({count : count()})
+      .from(orders)
+      .where(and(eq(orders.userId, userId), eq(orders.isDeleted, false)));
+    
+    console.log(`Total orders count for user ${userId} :`, totalOrdersCount[0]?.count);
+    
+    const userOrders = await db.select({
+      orderId: orders.id,
+      orderStatus: orders.orderStatus,
+      orderPrice: orders.orderPrice,
+      createdAt: orders.createdAt,
+
+      address: {
+        street: orders.orderAddress,
+        city: orders.orderCity,
+        state: orders.orderState,
+        country: orders.orderCountry,
+        zip: orders.orderZip,
+      }
+    })
+      .from(orders)
+      .where(and(eq(orders.userId, userId), eq(orders.isDeleted, false)))
+      .limit(size)
+      .offset(skip);
+
+    res.status(200).json({ 
+      message: `Orders for User ID: ${userId}`,
+      status: "success",
+      data: userOrders,
+      pagination: {
+        currentPage: page,
+        pageSize: size,
+        totalRecords: totalOrdersCount[0]?.count || 0,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating order:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      status: "error",
+      trace: error,
+    });
+  }
 }
 
-export const updateOrderStatus = (req: Request, res: Response) => {
-  const orderId = req.params.id;
+export const getOrderStats = async (req: Request, res: Response) => {
+  const { startDate, endDate } = req.query;
+  
+  try {
+    // Validate required parameters
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        message: "startDate and endDate are required",
+        status: "error"
+      });
+    }
+
+    // Validate date format
+    const start = new Date(startDate as string);
+    const end = new Date(endDate as string);
+    
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({
+        message: "Invalid date format",
+        status: "error"
+      });
+    }
+
+    if (start > end) {
+      return res.status(400).json({
+        message: "startDate cannot be after endDate",
+        status: "error"
+      });
+    }
+
+    // Fetch orders
+    const stats = await db.select()
+      .from(orders)
+      .where(
+        and(
+          gte(orders.createdAt, start),
+          lte(orders.createdAt, end),
+          eq(orders.isDeleted, false)
+        )
+      );
+
+    // Calculate statistics
+    const totalOrders = stats.length;
+    const totalRevenue = stats.reduce((acc, curr) => 
+      acc + parseFloat(curr.orderPrice.toString()), 0
+    );
+    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const completedOrders = stats.filter(stat => 
+      stat.orderStatus === ORDER_STATUS_DELIVERED
+    ).length;
+    const pendingOrders = stats.filter(stat => 
+      stat.orderStatus === ORDER_STATUS_CREATED
+    ).length;
+    const cancelledOrders = stats.filter(stat => 
+      stat.orderStatus === ORDER_STATUS_CANCELLED
+    ).length;
+
+    res.status(200).json({ 
+      message: `Order stats from ${startDate} to ${endDate}`,
+      status: "success",
+      data: {
+        overview: {
+          totalOrders,
+          totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+          averageOrderValue: parseFloat(averageOrderValue.toFixed(2)),
+          completedOrders,
+          pendingOrders,
+          cancelledOrders,
+        }
+      }, 
+    });
+
+  } catch (error) {
+    console.error("Error fetching order stats:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      status: "error",
+      trace: error,
+    });
+  }
+}
+
+
+
+/**
+ * Get all the orders in the platform with pagination
+ * GET /orders/list
+ */
+export const listOrders = async (req: Request, res: Response) => {
+  const { offset = 1, limit = 10 } = req.query;
+  const page = parseInt(offset as string, 10) || 1;
+  const size = parseInt(limit as string, 10) || 10;
+  const skip = (page - 1) * size;
+
+  try {
+    const allOrders = await db.select()
+      .from(orders)
+      .where(eq(orders.isDeleted, false));
+
+    const totalOrdersCount = await db.select({count : count()})
+      .from(orders)
+      .where(eq(orders.isDeleted, false));
+    
+    res.status(200).json({ 
+      message: `List of all orders`,
+      status: "success",
+      data: allOrders,
+      pagination: {
+        currentPage: page,
+        pageSize: size,
+        totalRecords: totalOrdersCount[0]?.count || 0,
+      },
+    });
+
+  } catch (error) {
+    console.error("Error listing orders:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      status: "error",
+      trace: error,
+    });
+  }
+}
+
+
+
+
+/**
+ * Update order status
+ * PATCH /orders/:id  Req Body: { status: number }
+ */
+export const updateOrderStatus = async (req: Request, res: Response) => {
+  const orderId = req.params.id as string;
   const { status } = req.body;
-  // Logic to update order status
-  res.status(200).json({ message: `Order ID: ${orderId} status updated to ${status}` });
+  
+  const validStatusCodes = [
+    { code: ORDER_STATUS_CREATED, name: 'Created' },
+    { code: ORDER_STATUS_PAID, name: 'Paid' },
+    { code: ORDER_STATUS_SHIPPED, name: 'Shipped' },
+    { code: ORDER_STATUS_DELIVERED, name: 'Delivered' },
+    { code: ORDER_STATUS_CANCELLED, name: 'Cancelled' },
+  ];
+
+  try {
+
+    if (!status) {
+      return res.status(400).json({
+        message: "Status is required",
+        status: "error"
+      });
+    }
+
+    if (!validStatusCodes.includes(status)) {
+      return res.status(400).json({
+        message: `Invalid status. Must be one of: ${validStatusCodes.map(s => s.name).join(', ')}`,
+        status: "error"
+      });
+    }
+
+    const existingOrder = await db.select({orderId: orders.id, currentStatus: orders.orderStatus})
+      .from(orders)
+      .where(
+        and(
+          eq(orders.isDeleted, false),
+          eq(orders.id, orderId),
+        )
+      )
+      .limit(1);
+
+    if (existingOrder.length === 0) {
+      return res.status(404).json({
+        message: "Order not found",
+        status: "error"
+      });
+    }
+
+    const updatedOrder = await db.update(orders)
+      .set({
+        orderStatus: status,
+        updatedAt: new Date()
+      })
+      .where(eq(orders.id, orderId))
+      .returning();
+
+    res.status(200).json({
+      message: `Order status updated to ${validStatusCodes.find(s => s.code === status)?.name}`,
+      status: "success",
+      data: updatedOrder[0]
+    });
+
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      status: "error",
+      trace: error,
+    });
+  }
 }
 
-export const deleteOrder = (req: Request, res: Response) => {
-  const orderId = req.params.id;
-  // Logic to delete an order
-  res.status(200).json({ message: `Order ID: ${orderId} deleted successfully` });
+
+
+
+/**
+ * Delete an order (soft delete)
+ * DELETE /orders/:id
+ */
+export const deleteOrder = async (req: Request, res: Response) => {
+  const orderId = req.params.id as string;
+
+  try {
+    // Logic to delete an order
+    const updatedOrder = await db.update(orders)
+      .set({
+        isDeleted: true,
+        orderStatus: ORDER_STATUS_CANCELLED,
+        updatedAt: new Date(),
+      })
+      .where(eq(orders.id, orderId))
+      .returning();
+
+    res.status(200).json({ 
+      message: `Order ID: ${orderId} deleted successfully`,
+      data: updatedOrder[0],
+      status: "success",
+    });
+
+  } catch (error) {
+    
+    console.error("Error deleting order:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      status: "error",
+      trace: error,
+    });
+  }
 }

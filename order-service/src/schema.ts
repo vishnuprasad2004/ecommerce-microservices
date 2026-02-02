@@ -31,5 +31,5 @@ export const orderItems  = pgTable("order_items", {
 
 export const orderStatus  = pgTable("order_status", {
   id: integer("id").primaryKey(),
-  statusName: uuid("status_name").notNull(),
+  statusName: text("status_name").notNull(),
 });
