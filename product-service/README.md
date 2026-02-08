@@ -108,3 +108,42 @@ Example Response :
       "status": "success"
   }
   ```
+  
+
+## Kubernetes Commands used (for local prod)
+> Prerequisites: Docker and minikube should be installed and kubectl should be configured
+> Run `minikube status` to check the config status
+
+1. First run this command to load the local image into minikube cluster's container runtime, so minikube knows not to pull it from a remote registry. 
+
+```bash
+minikube image load product-service:latest
+```
+
+2. Let's make ConfigMap file automatically from our .env file to store configuration and environment variables.
+
+```bash
+kubectl create configmap product-service-env --from-env-file=.env
+```
+
+3. Now, create/update the resources like Pods, Services, Deployment using the kubectl apply command 
+
+```bash
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+```
+
+4. Check the status of all the pods through this command ```kubectl get pods``` and get detailed config and events of each pod in deployment through ```kubectl get pod <pod-name>```
+
+5. Check out the dashboard 🎉, run 
+```bash
+minikube dashboard 
+```
+
+> **To scale a Deployment** by updating the number of Pods in a deployment, run ```kubectl scale deployment/product-service --replicas=10```
+
+
+
+|NAME                             |  READY |   STATUS  | RESTARTS |  AGE |
+|---------------------------------|--------|-----------|----------|------|
+|product-service-75449bbfc6-k7xhn |  1/1   |  Running  |    0     | 80m  |
