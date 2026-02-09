@@ -10,12 +10,20 @@ In the Product Microservice, I implemented:
 In the User Microservice, I Implemented:
 1. Database being PostgreSQL, for relational and transactional operations
 
-### Refernces:
+## 3. Order Service
+In the Order Microservice , Implemented:
+1. Database being PostgreSQL, for relational and transactional operations
+2. Synchronous Sevice-to-Service Communication between this service and user & product service - when creating an order multiple transactional operations where this service sends a request to the product-service or user-service and await for response.
+
+
+### References:
 - [Mastering API Pagination: Best Practices for Performance & Scalability](https://medium.com/@khanshahid9283/mastering-api-pagination-best-practices-for-performance-scalability-ca16980bc8f0)
 - [Integrate AWS S3 with Your Node.js Project: A Step-by-Step Guide](https://mrfreelancer9.medium.com/integrate-aws-s3-with-your-node-js-project-a-step-by-step-guide-f7f160ea8d29)
 - [Design E-Commerce Applications with Microservices Architecture](https://medium.com/design-microservices-architecture-with-patterns/design-e-commerce-applications-with-microservices-architecture-c69e7f8222e7)
 - [How To Perform Full-text Search in MongoDB
 ](https://www.digitalocean.com/community/tutorials/how-to-perform-full-text-search-in-mongodb)
+- [A Comprehensive Guide to Service-to-Service Communication: Synchronous and Asynchronous Approaches.](https://medium.com/@naveethannaveethan13/a-comprehensive-guide-to-service-to-service-communication-synchronous-and-asynchronous-approaches-8798060d39b4)
+
 <!-- - [How to Choose a Database for Microservices — CAP Theorem](https://medium.com/design-microservices-architecture-with-patterns/how-to-choose-a-database-for-microservices-cap-theorem-d1585bf40ecd) -->
 
 
