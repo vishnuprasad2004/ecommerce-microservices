@@ -1,4 +1,20 @@
-# E-commerce Microservices with Kubernetes
+# E-commerce Microservices with Kubernetes - v1
+
+I made this project to understand how scalable and large-scale software systems are designed, deployed, scaled, and managed in real-world environments. Instead of building a monolithic application, this project follows a microservices architecture similar to what is used in production-grade e-commerce platforms.
+
+The application is split into independent services such as **User Service, Product Service, Order Service**, and supporting infrastructure components. Each service is developed, containerized, and deployed independently locally using **minikube**, allowing the system to scale specific services based on demand rather than scaling the entire application.
+
+## Tech Stack:
+![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white) 
+![Express.js](https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB)
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
+![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
+![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
+![Drizzle](https://img.shields.io/badge/Drizzle-%23000000?style=for-the-badge&logo=drizzle&logoColor=C5F74F)
 
 ## 1. Product Service
 In the Product Microservice, I implemented:
@@ -10,10 +26,18 @@ In the Product Microservice, I implemented:
 In the User Microservice, I Implemented:
 1. Database being PostgreSQL, for relational and transactional operations
 
+### ER Diagram
+
+<img src="https://mermaid.ink/img/pako:eNp9UtluwjAQ_BVrnwEBuf1GS5BQy1EgUlVFiiy8gFViIyfpRfn3OhBoaNU-2TPjsWd3vYel4ggUUPcFW2uWxpKQ2eQ-nJN9uSVkOF4Qwcn07gQX4eOCaLXFRLIUSUkeYlku0TycXVxRNOz_spWOGsSUiS2JxsOHKKzRO5Zlr0rzOrVREq9O3kxMxt74dEfyglqsBPJrTWQJxy3mZ76spExOBudQw1E4X_RGU7LUyMy5hOU_lWLHa0pVaq_fn4XzP4s94iJDnRhyUO9AlmvEvEYsRf5-pZvHavhD7JJyQv_nrVKdxvb52WyqfTUNSkwzxVpm3wOq9HMJlGyYUaEBay040FwX2IAUtWmsgXAsMYZ8g2Z2QM2WM_0cQywPxrNj8kmp9GzTqlhvgK7YNjPo1LrqX11YjZKjvlWFzIF2g-MdQPfwBtSyuy2va1tty3GtwPW9BryXbMsPHLcTBK7nOx3bdg4N-Di-2m4Fvu15vud2fNfy2r5z-AItKdlv?type=png" height="500"/>
+
+
 ## 3. Order Service
 In the Order Microservice , Implemented:
 1. Database being PostgreSQL, for relational and transactional operations
 2. Synchronous Sevice-to-Service Communication between this service and user & product service - when creating an order multiple transactional operations where this service sends a request to the product-service or user-service and await for response.
+
+### ER Diagrams
+<img src="https://mermaid.ink/img/pako:eNqNU2tPgzAU_SvN_TwXNsZjfFOHCdE9MlliDAlpaN0aR4ulJO713y2w6UBM7Lfec8-59_bcHiARhIIHVE4YXkucRhzpM19O_GX8HN6Gq2d0qGPlCWYhYgQtHn9Cof8SolxhVeQxxymtkVPEr5QaGqtVMGmLVLEipzJmpFlNSKKjtT56uKLMVlN_GdyfEzLJEtpqqkYwIZLmeSeWMLXrBMp63XKJKLiS3aw9y1rxbCN4tw5NMdt2jarw5xUhmPrahekCJZLqlkiMVRdaZOQXejefP_m3M8TymNAt1XCXNXEQ-tP_-VP3p5GHNpJJQYpENcy7-PNRYK4a73xBmKLpL-P-HLjV9nk3j8ebG3G4bJmHItjgPILG7l3nnMctExPBFWa8yoYerCUj4ClZ0B6kVGp79BWqd4lAbajebChpBMv3knLSnAzzVyHSC02KYr0B7w1vc32rPTl_q-8UyvUj3pdLBJ5VKYB3gE_wzPGg7wxHpmHZ5sh2LbMHO_AGw747tuyBYRmWNXSGtnvqwb6qafTH7shxXMceuLbpGK51-gKfqxnP?type=png" height="500"/>
 
 
 ### References:
@@ -40,12 +64,5 @@ In the Order Microservice , Implemented:
 4. Testing Overhead, too many things to test
 
 
-## Tech Stack:
-![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white) 
-![Express.js](https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB)
-![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
-![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
-![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
+> ### _Get Started:_
+> I have added the documentation to start and run each service in its designated service folder.
