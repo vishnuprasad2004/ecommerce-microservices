@@ -8,7 +8,7 @@
 
 ## Get Started
 
-Follow these steps to set up and run the Product-Service:
+Follow these steps to set up and run the User-Service:
 
 1. **Clone the Repository**  
   Clone the repository to your local machine using the following command:  
@@ -22,7 +22,7 @@ Follow these steps to set up and run the Product-Service:
 3. **Build the Docker Image**  
   Build the Docker image for the User-Service using the following command:  
   ```bash
-  docker build -t user-service .
+  docker build -t user-service:latest .
   ```
 
 4. **Run the Docker Container**  
@@ -39,6 +39,47 @@ Follow these steps to set up and run the Product-Service:
 
 ---
 
+
+## Kubernetes Commands used (for local prod)
+> Prerequisites: Docker and minikube should be installed and kubectl should be configured
+> Run `minikube status` to check the config status
+
+1. First run this command to load the local image into minikube cluster's container runtime, so minikube knows not to pull it from a remote registry. 
+
+```bash
+minikube image load user-service:latest
+```
+
+2. Let's make ConfigMap file automatically from our .env file to store configuration and environment variables.
+
+```bash
+kubectl create configmap user-service-env --from-env-file=.env
+```
+
+3. Now, create/update the resources like Pods, Services, Deployment using the kubectl apply command 
+
+```bash
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+```
+
+4. Check the status of all the pods through this command ```kubectl get pods``` and get detailed config and events of each pod in deployment through ```kubectl get pod <pod-name>```
+
+5. Check out the dashboard 🎉, run 
+```bash
+minikube dashboard 
+```
+Or you can check it out on Lens IDE
+
+> **To scale a Deployment** by updating the number of Pods in a deployment, run ```kubectl scale deployment/user-service --replicas=10```
+
+> **To Check the Logs:** we can use the command and can start debugging ```kubectl logs <pod-name>```
+
+> **To execute in the Pod:** We can use the command ```kubectl exec -it user-service-67d5875c99-khkvq -- sh```
+
+|NAME                             |  READY |   STATUS  | RESTARTS |  AGE |
+|---------------------------------|--------|-----------|----------|------|
+|user-service-67d5875c99-khkvq |  1/1   |  Running  |    0     | 80m  |
 
 ## Future Improvements (Auth)
 - [ ] Email verification
