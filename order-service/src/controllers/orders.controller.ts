@@ -5,6 +5,13 @@ import { orders, orderItems } from "../schema.js";
 import { and, count, eq, gte, lte, sql } from "drizzle-orm";
 import { validate } from "uuid";
 
+const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL || 'http://localhost:3001';
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3002';
+
+// ADD THIS
+console.log('🎯 Order Controller Initialized:');
+console.log('  PRODUCT_SERVICE_URL:', PRODUCT_SERVICE_URL);
+console.log('  USER_SERVICE_URL:', USER_SERVICE_URL);
 
 const ORDER_STATUS_CREATED = 1;
 const ORDER_STATUS_PAID = 2;
@@ -63,6 +70,7 @@ type CreateOrderRequest = {
 export const createOrder = async (req: Request, res: Response) => {
   //transactional logic to create order and order items
   // get all the information from req.body
+  console.log("Received create order request with body:", req.body);
   const { email, items, orderTax, phone, userId, shippingAddress, shippingAddressId }: CreateOrderRequest = req.body;
   
   if (!userId || !items || items.length === 0) {
@@ -82,8 +90,8 @@ export const createOrder = async (req: Request, res: Response) => {
   try {
 
     //validate the user and the shipping address here
-
-    const user = await fetch(`http://localhost:3002/api/users/${userId}`);
+    console.log(`Validating user with ID: ${userId} and shipping address with ID: ${shippingAddressId}`);
+    const user = await fetch(`${USER_SERVICE_URL}/api/users/${userId}`);
     console.log(`User validation response :`, user);
     
     if(user.status !== 200) {
@@ -94,7 +102,8 @@ export const createOrder = async (req: Request, res: Response) => {
     }
 
     const address = shippingAddress || await (async () => {
-      const res = await fetch(`http://localhost:3002/api/address/${shippingAddressId}`);
+      console.log(`Validating shipping address with ID: ${shippingAddressId}`);
+      const res = await fetch(`${USER_SERVICE_URL}/api/address/${shippingAddressId}`);
       console.log(`Address validation response :`, res);
       if(res.status !== 200) {
         throw new Error('Invalid shippingAddressId');
@@ -103,7 +112,8 @@ export const createOrder = async (req: Request, res: Response) => {
     })();
 
     // check for product availability and get product prices -> for this I made a bulk fetch POST API in product-service
-    const productAvailabilityResponse = await fetch(`http://localhost:3001/api/products/availability`, {
+    console.log(`Checking availability for items: ${items.map(i => i.productId).join(', ')}`);
+    const productAvailabilityResponse = await fetch(`${PRODUCT_SERVICE_URL}/api/products/availability`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -144,7 +154,8 @@ export const createOrder = async (req: Request, res: Response) => {
     
     // deduce the stock in product-service
     try {
-      const stockUpdateResponse = await fetch(`http://localhost:3001/api/products/deduct-stock`, {
+      console.log(`Deducting stock for items: ${items.map(i => i.productId).join(', ')}`);
+      const stockUpdateResponse = await fetch(`${PRODUCT_SERVICE_URL}/api/products/deduct-stock`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -220,7 +231,7 @@ export const createOrder = async (req: Request, res: Response) => {
     res.status(500).json({
       message: "Internal Server Error",
       status: "error",
-      trace: error,
+      trace: error?.toString(),
     });
   }
 };
