@@ -1,4 +1,4 @@
-{ 
+{
   "name": "api-gateway",
   "version": "1.0.0",
   "main": "dist/index.js",
@@ -10,11 +10,16 @@
   },
   "dependencies": {
     "express": "^5.2.1",
-    "http-proxy": "^1.18.1"
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "http-proxy": "^1.18.1",
+    "http-proxy-middleware": "^3.0.5",
+    "morgan": "^1.10.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/http-proxy": "^1.17.17",
+    "@types/morgan": "^1.9.10",
     "dotenv": "^17.2.3",
     "typescript": "^5.9.3"
   }

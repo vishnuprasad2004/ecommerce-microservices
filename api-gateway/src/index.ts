@@ -1,47 +1,73 @@
 import express, { Request, Response } from 'express';
-import httpProxy from 'http-proxy';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Create a proxy server
-const apiProxy = httpProxy.createProxyServer();
-
-// Define service routes
 const services = {
-    users: process.env.USERS_SERVICE_URL || 'http://localhost:4001',
-    products: process.env.PRODUCTS_SERVICE_URL || 'http://localhost:4002',
-    orders: process.env.ORDERS_SERVICE_URL || 'http://localhost:4003',
+  products: process.env.PRODUCT_SERVICE_URL || 'http://product-service:3001',
+  users:    process.env.USER_SERVICE_URL    || 'http://user-service:3002',
+  orders:   process.env.ORDER_SERVICE_URL   || 'http://order-service:3003',
 };
 
-// Health check
-app.get('/health', (req: Request, res: Response) => {
+app.use(helmet());
+app.use(morgan('combined'));
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+}));
+
+// Health check — before proxy so it doesn't get forwarded
+app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'healthy', service: 'api-gateway' });
 });
 
+// Mount on root "/" with pathFilter — Express won't strip the prefix this way
+app.use(createProxyMiddleware({
+  pathFilter: '/api/orders',
+  target: services.orders,
+  changeOrigin: true,
+  on: {
+    error: (_err, _req, res) => {
+      (res as Response).status(502).json({ message: 'Order service unavailable' });
+    },
+  },
+}));
 
-// Route requests to appropriate services
-app.use('/api/users', (req: Request, res: Response) => {
-  apiProxy.web(req, res, { target: services.users });
-});
+app.use(createProxyMiddleware({
+  pathFilter: '/api/products',
+  target: services.products,
+  changeOrigin: true,
+  on: {
+    error: (_err, _req, res) => {
+      (res as Response).status(502).json({ message: 'Product service unavailable' });
+    },
+  },
+}));
 
-app.use('/api/products', (req: Request, res: Response) => {
-  apiProxy.web(req, res, { target: services.products });
-});
+app.use(createProxyMiddleware({
+  pathFilter: '/api/users',
+  target: services.users,
+  changeOrigin: true,
+  on: {
+    error: (_err, _req, res) => {
+      (res as Response).status(502).json({ message: 'User service unavailable' });
+    },
+  },
+}));
 
-app.use('/api/orders', (req: Request, res: Response) => {
-  apiProxy.web(req, res, { target: services.orders });
-});
-
-// Fallback for undefined routes
-app.use((req: Request, res: Response) => {
+app.use((_req: Request, res: Response) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// Start the server
 app.listen(port, () => {
-  console.log(`API Gateway is running on http://localhost:${port}`);
+  console.log(`API Gateway running on http://localhost:${port}`);
 });
