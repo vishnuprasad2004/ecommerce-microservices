@@ -1,5 +1,7 @@
 # E-commerce Microservices with Kubernetes - v1
 
+> Designed and deployed a containerized microservices-based e-commerce backend with independent scaling, service isolation, and Kubernetes orchestration to simulate production-grade distributed systems.
+
 I made this project to understand how scalable and large-scale software systems are designed, deployed, scaled, and managed in real-world environments. Instead of building a monolithic application, this project follows a microservices architecture similar to what is used in production-grade e-commerce platforms.
 
 The application is split into independent services such as **User Service, Product Service, Order Service**, and supporting infrastructure components. Each service is developed, containerized, and deployed independently locally using **minikube**, allowing the system to scale specific services based on demand rather than scaling the entire application.
@@ -15,6 +17,67 @@ The application is split into independent services such as **User Service, Produ
 ![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
 ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
 ![Drizzle](https://img.shields.io/badge/Drizzle-%23000000?style=for-the-badge&logo=drizzle&logoColor=C5F74F)
+
+## Folder Structure
+
+```
+ecommerce-microservices/
+│
+├── amazon-data.json
+├── README.md
+│
+├── api-gateway/
+│   ├── src/
+│   │   └── index.ts
+│   ├── Dockerfile
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   ├── compose.yaml
+│   └── package.json
+│
+├── user-service/
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── routes/
+│   │   ├── schema.ts
+│   │   ├── db.ts
+│   │   └── index.ts
+│   ├── Dockerfile
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   ├── compose.yaml
+│   └── package.json
+│
+├── product-service/
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── utils/
+│   │   ├── db.ts
+│   │   └── index.ts
+│   ├── Dockerfile
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   ├── compose.yaml
+│   └── package.json
+│
+└── order-service/
+    ├── src/
+    │   ├── controllers/
+    │   ├── routes/
+    │   ├── schema.ts
+    │   ├── db.ts
+    │   └── index.ts
+    ├── Dockerfile
+    ├── deployment.yaml
+    ├── service.yaml
+    ├── compose.yaml
+    └── package.json
+
+```
+## System Architecture
+<img src="./ecommerce microservice diagram.png" height="200" alt="ecommerce microservice diagram DFD">
 
 ## 1. Product Service
 In the Product Microservice, I implemented:
@@ -39,6 +102,26 @@ In the Order Microservice , Implemented:
 ### ER Diagrams
 <img src="https://mermaid.ink/img/pako:eNqNU2tPgzAU_SvN_TwXNsZjfFOHCdE9MlliDAlpaN0aR4ulJO713y2w6UBM7Lfec8-59_bcHiARhIIHVE4YXkucRhzpM19O_GX8HN6Gq2d0qGPlCWYhYgQtHn9Cof8SolxhVeQxxymtkVPEr5QaGqtVMGmLVLEipzJmpFlNSKKjtT56uKLMVlN_GdyfEzLJEtpqqkYwIZLmeSeWMLXrBMp63XKJKLiS3aw9y1rxbCN4tw5NMdt2jarw5xUhmPrahekCJZLqlkiMVRdaZOQXejefP_m3M8TymNAt1XCXNXEQ-tP_-VP3p5GHNpJJQYpENcy7-PNRYK4a73xBmKLpL-P-HLjV9nk3j8ebG3G4bJmHItjgPILG7l3nnMctExPBFWa8yoYerCUj4ClZ0B6kVGp79BWqd4lAbajebChpBMv3knLSnAzzVyHSC02KYr0B7w1vc32rPTl_q-8UyvUj3pdLBJ5VKYB3gE_wzPGg7wxHpmHZ5sh2LbMHO_AGw747tuyBYRmWNXSGtnvqwb6qafTH7shxXMceuLbpGK51-gKfqxnP?type=png" height="500"/>
 
+
+## Challenges Faced & Learnings
+
+1. Managing inter-service communication failures
+2. Handling environment variable configuration across services
+3. Understanding difference between ClusterIP and NodePort
+Debugging networking issues in Kubernetes
+4. Understanding good API development practices like pagination, soft deleting etc.
+5. Understanding failures due to version controlling in code, docker images and pod deployments
+6. Understood about logging, api-gateway practices, and server debugging.
+
+## Future Improvements
+
+1. Asynchronous communication using Kafka or RabbitMQ (Message Queues)
+2. Redis caching layer
+3. CI/CD pipeline using GitHub Actions
+4. Centralized config management
+5. Distributed Authentication and Authorization
+6. Language Agnostic Services (using Java, or Golang for concurrency or python for a basic recommender service using user purchase history)
+7. Use RDS for databases and EKS for Kubernetes in cloud (optional)
 
 ### References:
 - [Mastering API Pagination: Best Practices for Performance & Scalability](https://medium.com/@khanshahid9283/mastering-api-pagination-best-practices-for-performance-scalability-ca16980bc8f0)
