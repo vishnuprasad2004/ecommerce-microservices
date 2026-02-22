@@ -227,6 +227,17 @@ export const createOrder = async (req: Request, res: Response) => {
     });
 
   } catch (error) { 
+
+    /**
+     * TODO: Implement a compensation mechanism to handle failures after stock deduction, such as:
+     * - Rolling back stock deductions if order creation fails
+     * - Sending notifications to admins about failed orders
+     * - Implementing a retry mechanism for failed stock updates
+     * There are 2 approaches to handle this: (topic is called distributed transactions in microservices)
+     * 1. 2 phase commit 
+     * 2. Saga pattern 
+     * For now, I only know the names of these patterns, I will have to research and learn about them to implement a proper solution. For now, I will just log the error and return a 500 response.
+     */
     console.error("Error creating order:", error);
     res.status(500).json({
       message: "Internal Server Error",
@@ -448,7 +459,9 @@ export const listOrders = async (req: Request, res: Response) => {
 
     const totalOrdersCount = await db.select({count : count()})
       .from(orders)
-      .where(eq(orders.isDeleted, false));
+      .where(eq(orders.isDeleted, false))
+      .limit(size)
+      .offset(skip);
     
     res.status(200).json({ 
       message: `List of all orders`,
@@ -498,8 +511,8 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
         status: "error"
       });
     }
-
-    if (!validStatusCodes.includes(status)) {
+    const statusCode = parseInt(req.body.status, 10);
+    if (isNaN(statusCode) ||!validStatusCodes.some(s => s.code === statusCode)) {
       return res.status(400).json({
         message: `Invalid status. Must be one of: ${validStatusCodes.map(s => s.name).join(', ')}`,
         status: "error"
