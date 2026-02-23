@@ -16,6 +16,7 @@ The application is split into independent services such as **User Service, Produ
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
 ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
+![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
 ![Drizzle](https://img.shields.io/badge/Drizzle-%23000000?style=for-the-badge&logo=drizzle&logoColor=C5F74F)
 
 ## Folder Structure
@@ -84,6 +85,7 @@ In the Product Microservice, I implemented:
 1. Pagination of products to improve the API performance, reducing memory storage, and lowering the server load.
 2. Storage for the Product Images in AWS S3 Bucket
 3. Database being MongoDB, it was chosen as the database due to its suitability for scenarios with a high View-to-Update ratio (approximately 3%), indicating significantly more read operations compared to write operations.
+4. Implemented Cache Key based Caching using redis(in-memory key-value based db) for fetching product details with low latency and also implemented removal of cached data whenever operations such as creation, updation, or deletion happens in the database to keep data consistency. Latency decreased by **90.4%**
 
 ## 2. User Service
 In the User Microservice, I Implemented:
@@ -149,3 +151,9 @@ Debugging networking issues in Kubernetes
 
 > ### _Get Started:_
 > I have added the documentation to start and run each service in its designated service folder.
+
+> **For Redis Deployment**, run `kubectl apply -f k8s/redis-deployment.yaml` & `kubectl apply -f k8s/redis-service.yaml`
+
+## Screenshot(s)
+
+![minikube dashboard](minikube-dashboard-screenshot.png)
