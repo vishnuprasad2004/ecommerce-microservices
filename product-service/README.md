@@ -1,7 +1,8 @@
 # Product-Service
 
-* In the Product-Service, MongoDB was chosen as the database due to its suitability for scenarios with a high View-to-Update ratio (approximately 3%), indicating significantly more read operations compared to write operations. As a document-oriented database, MongoDB offers optimized performance for read-heavy workloads, making it a more efficient choice compared to relational databases in this context.
-* Implmented Soft-deleting, i.e. a technique where records are not permanently removed from the database but are instead marked as deleted, typically using a flag like `isDeleted`. It helps in Data Recovery, Auditing, Historial Analysis. I used a isDeleted flag for each product.
+* In the Product-Service, **MongoDB** was chosen as the database due to its suitability for scenarios with a high View-to-Update ratio (approximately 3%), indicating significantly more read operations compared to write operations. As a document-oriented database, MongoDB offers optimized performance for read-heavy workloads, making it a more efficient choice compared to relational databases in this context.
+* Implmented **Soft-deleting**, i.e. a technique where records are not permanently removed from the database but are instead marked as deleted, typically using a flag like `isDeleted`. It helps in Data Recovery, Auditing, Historial Analysis. I used a isDeleted flag for each product.
+* Implemented Cache Key based Caching using **redis(in-memory key-value based db)** for fetching product details with low latency and also implemented removal of cached data whenever operations such as creation, updation, or deletion happens in the database to keep data consistency. 
 
 
 ## Get Started
@@ -40,6 +41,8 @@ Follow these steps to set up and run the Product-Service:
 
 ### All Product Retrieval Action Analysis:
 * Time Taken: 2.87 s
+* **After using Redis: 275.68 ms**
+Increase of 90.4%
 
 | **Metric**         | **Size**     |
 |--------------------|--------------|
