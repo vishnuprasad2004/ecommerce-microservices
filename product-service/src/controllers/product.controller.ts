@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
 import Product from "../models/product.js";
 import { v4 as uuidv4, validate } from "uuid";
-import generateSKU from "../utils/genSKU.js";
+import generateSKU, { isValidateSKU } from "../utils/genSKU.js";
 import uploadToS3 from "../utils/uploadToS3.js";
 import mongoose from "mongoose";
+import redis, { invalidateProductCache } from "../utils/redis.config.js";
 
 /**
  * Get all the products in the platform with pagination
@@ -21,20 +22,34 @@ export const getAllCurrentProductsWithPagination = async (req: Request, res: Res
       .skip(skip)
       .limit(size)
       .exec();
+    
+    // addition is the caching layer - redis based on unique cache key for each combination of response
+    const cacheKey = `products:page:${page}:size:${size}`;
+    const cached = await redis.get(cacheKey);
+    if(cached) {
+      console.log("Cache hit for key:", cacheKey);
+      res.status(200).json(JSON.parse(cached));
+      return;
+    }
+
     const totalItems = await Product.countDocuments({ isDeleted: false }).exec();
 
-    res.status(200)
-      .json({ 
-        message: "Get all current available products", 
-        data: products,
-        pagination: {
-          currentPage: page,
-          pageSize: size,
-          totalItems,
-          totalPages: Math.ceil(totalItems / size),
-        }, 
-        status: "success" 
-      });
+    const response = {
+      message: "Get all current available products", 
+      data: products,
+      pagination: {
+        currentPage: page,
+        pageSize: size,
+        totalItems,
+        totalPages: Math.ceil(totalItems / size),
+      }, 
+      status: "success"
+    }
+    // cache the response for 5 minutes (300 seconds)
+    await redis.setex(cacheKey, 3600, JSON.stringify(response));
+
+    res.status(200).json(response);
+    
 
   } catch (error) {
     console.log(error);
@@ -57,18 +72,33 @@ export const getProductById = async (req: Request, res: Response) => {
       })
     } 
 
+    const cacheKey = `product:id:${productId}`;
+
+    const cached = await redis.get(cacheKey);
+    if(cached) {
+      console.log("Cache hit for key:", cacheKey);
+      res.status(200).json(JSON.parse(cached));
+      return;
+    }
+
     const product = await Product.findOne({ productId, isDeleted: false }).exec();
     if (!product) {
       return res.status(404)
         .json({ message: "Product not found", status: "error" });
     }
 
-    res.status(200)
-      .json({ 
-        message: `Get product with ${productId} product ID`, 
-        data: product, 
-        status: "success" 
-      });
+
+    const response = {
+      message: `Get product with ${productId} product ID`, 
+      data: product, 
+      status: "success" 
+    }
+
+    // cache the response for 60 minutes (3000 seconds)
+    await redis.setex(cacheKey, 3600, JSON.stringify(response));
+
+    res.status(200).json(response);
+      
   }
   catch (error) {
     console.log(error);
@@ -84,6 +114,18 @@ export const getProductById = async (req: Request, res: Response) => {
 export const getProductBySKU = async (req:Request, res:Response) => {
   try {
     const { productSKU } = req.params;
+    if(!productSKU) {
+      return res.status(400).json({
+        message: "Product SKU is required",
+        status: "error"
+      });
+    }
+    if(!isValidateSKU(productSKU)) {
+      return res.status(400).json({
+        message: "Product SKU is invalid",
+        status: "error"
+      });
+    }
 
     const product = await Product.findOne({ productSKU, isDeleted: false }).exec();
     if (!product) {
@@ -115,6 +157,15 @@ export const getLowStockProducts = async (req: Request, res: Response) => {
     const limitNumber = Number(limit);
     const skip = (pageNumber - 1) * limitNumber;
     
+    const cacheKey = `products:low-stock:threshold:${threshold}:page:${pageNumber}:limit:${limitNumber}`;
+    const cached = await redis.get(cacheKey);
+
+    if(cached) {
+      console.log("Cache hit for key:", cacheKey);
+      res.status(200).json(JSON.parse(cached));
+      return;
+    }
+
     const totalCount = await Product.countDocuments({ 
       productStock: { $gte: 0, $lte: Number(threshold) } 
     });
@@ -126,7 +177,7 @@ export const getLowStockProducts = async (req: Request, res: Response) => {
       .skip(skip)
       .sort({ productStock: 1 });
     
-    res.status(200).json({
+    const response = {
       message: "Low stock products fetched successfully",
       products,
       threshold: Number(threshold),
@@ -137,7 +188,14 @@ export const getLowStockProducts = async (req: Request, res: Response) => {
         totalPages: Math.ceil(totalCount / limitNumber),
       },
       status: "success",
-    });
+    };
+
+    // cache the response for 30 minutes (1800 seconds)
+    await redis.setex(cacheKey, 1800, JSON.stringify(response));
+
+    res.status(200).json(response);
+
+
   } catch (error) {
     console.error("Get Low Stock Products Error:", error);
     res.status(500).json({ message: "Internal Server Error", status: "error" });
@@ -174,6 +232,8 @@ export const getProductAvailability = async (req: Request, res: Response) => {
       productName:1,
       productSKU:1 
     });
+
+
     res.status(200).json({
       status: "success",
       message: "Got all the product",
@@ -307,6 +367,12 @@ export const createProduct = async (req: Request, res: Response) => {
       productCategory: category,
     });
 
+    // remove the cached paginated list of products in redis to ensure cache consistency after creating a new product
+    const listKeys = await redis.keys("products:list:*");
+    if (listKeys.length > 0) {
+      await redis.del(...listKeys);
+    }
+
     res
       .status(201)
       .json({
@@ -327,6 +393,15 @@ export const createProduct = async (req: Request, res: Response) => {
 export const updateProductById = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
+    if(!validate(productId)) {
+      return res.status(400).json({
+        message: "Product Id is invalid",
+        status: "error"
+       });
+    }
+    
+    invalidateProductCache(productId as string); // Invalidate cache for this product ID before updating
+
     const updateData = req.body;
     const product = await Product.findOne({ productId, isDeleted: false }).limit(1).exec();
     if (!product) {
@@ -354,6 +429,14 @@ export const updateProductById = async (req: Request, res: Response) => {
 export const updateProductPriceById = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
+    if(!validate(productId)) {
+      return res.status(400).json({
+        message: "Product Id is invalid",
+        status: "error"
+       });
+    }
+    invalidateProductCache(productId as string); // Invalidate cache for this product ID before updating price
+
     const { price } = req.body;
     const product = await Product.findOneAndUpdate({ productId, isDeleted: false }, { $set: {productPrice: price} }, { new:true }).exec();
     if (!product) {
@@ -416,6 +499,11 @@ export const deductMultipleProductStock = async (req:Request, res: Response) => 
       if (!updated) {
         throw new Error("INSUFFICIENT_STOCK");
       }
+
+      items.map((item) => {
+        invalidateProductCache(item.productId); // Invalidate cache for each product ID before updating stock
+      });
+
     }
 
     await session.commitTransaction();
@@ -444,8 +532,18 @@ export const deductMultipleProductStock = async (req:Request, res: Response) => 
 export const updateProductStockById = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
+    if(!validate(productId)) {
+      return res.status(400).json({
+        message: "Product Id is invalid",
+        status: "error"
+       });
+    }
+    
     const { stock } = req.body;
+    
     const product = await Product.findOneAndUpdate({ productId, isDeleted: false }, { $set: {productStock: stock}}, {new: true}).exec();
+    
+    invalidateProductCache(productId as string); // Invalidate cache for this product ID before updating stock
     if (!product) {
       return res
         .status(404)
@@ -466,6 +564,12 @@ export const updateProductStockById = async (req: Request, res: Response) => {
 export const deleteProductById = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
+    if(!validate(productId)) {
+      return res.status(400).json({
+        message: "Product Id is invalid",
+        status: "error"
+       });
+    }
     const product = await Product.findOne({ productId, isDeleted: false }).exec();
     if (!product) {
       return res
@@ -474,6 +578,7 @@ export const deleteProductById = async (req: Request, res: Response) => {
     }
     product.$set('isDeleted', true);
     await product.save();
+    invalidateProductCache(productId as string); // Invalidate cache for this product ID after deletion
     res
       .status(200)
       .json({ message: "Product deleted successfully", status: "success" });

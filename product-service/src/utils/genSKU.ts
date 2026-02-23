@@ -12,3 +12,9 @@ export default function generateSKU(itemName:string, itemAttr1:string, itemAttr2
 	return sku;
 
 }
+
+// simple validation to ensure SKU is generated correctly
+export function isValidateSKU(sku: string): boolean {
+	const regex = /^[A-Z]{3}-[A-Z]{3}(-[A-Z]{3})?$/;
+	return regex.test(sku);
+}
