@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import cors from "cors";
 
 dotenv.config();
 
@@ -16,8 +17,15 @@ const services = {
   orders:   process.env.ORDER_SERVICE_URL   || 'http://order-service:3003',
 };
 
+// Allows your backend API to accept requests from different domains (e.g., frontend running on another port)
+app.use(cors());
+// Helps protect against common vulnerabilities like XSS, clickjacking, MIME sniffing, etc.
 app.use(helmet());
+// HTTP request logger middleware
+// 'combined' format logs detailed information including IP, method, URL, status, response time
+// Useful for debugging and monitoring in production
 app.use(morgan('combined'));
+// Rate limiting middleware to prevent abuse and brute-force attacks
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
