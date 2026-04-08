@@ -1,12 +1,22 @@
 import { Redis } from "ioredis";
+import logger from "./logger.js";
 
 const redis = new Redis({
   host: process.env.REDIS_HOST || "localhost",
   port: Number(process.env.REDIS_PORT) || 6379,
+  retryStrategy: (times) => {
+    if(times >= 5) {
+      logger.error(`[REDIS RETRY]: Failed to connect after ${times} attempts`);
+      return null; // Stop retrying after 5 attempts
+    }
+    const delay = Math.min(times * 50, 2000);
+    logger.warn(`[REDIS RETRY]: Attempt ${times}, retrying in ${delay}ms`);
+    return delay;
+  }
 });
 
-redis.on("connect", () => console.log("[REDIS CONNECTION]: Redis connected"));
-redis.on("error", (err: any) => console.error("[REDIS ERROR]:", err));
+redis.on("connect", () => logger.info("[REDIS CONNECTION]: Redis connected"));
+redis.on("error", (err: any) => logger.warn("[REDIS ERROR]:", { error: err }));
 
 // VERY IMPORTANT: Call this function whenever a product is created, updated, or deleted to ensure cache consistency
 export const invalidateProductCache = async (productId: string) => {
@@ -19,7 +29,7 @@ export const invalidateProductCache = async (productId: string) => {
     await redis.del(...listKeys);
   }
 
-  console.log(`Cache invalidated for product: ${productId}`);
+  logger.info(`Cache invalidated for product: ${productId}`);
 };
 
 export default redis;

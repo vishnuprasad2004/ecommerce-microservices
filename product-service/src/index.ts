@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import connectDB from "./db.js";
 import productRoutes from "./routes/routes.js";
 import express from "express";
+import logger from "./utils/logger.js";
 dotenv.config();
 
 connectDB();
@@ -23,5 +24,5 @@ app.use("/api/products", productRoutes);
 
 
 app.listen(PORT, () => {
-  console.log(`[PRODUCT-SERVICE]: Server is running at http://localhost:${PORT}`);
+  logger.info(`[PRODUCT-SERVICE]: Server is running at http://localhost:${PORT}`);
 });

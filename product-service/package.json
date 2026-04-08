@@ -18,7 +18,8 @@
     "ioredis": "^5.9.3",
     "mongoose": "^8.21.0",
     "multer": "^2.0.2",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
