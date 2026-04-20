@@ -1,0 +1,7 @@
+venv/
+env/
+.env/
+bin/
+include/
+lib/
+.env
