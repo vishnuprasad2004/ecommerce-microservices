@@ -1,116 +1,100 @@
-# from kubernetes import client, config
-# from langchain.agents import create_agent
-# from langchain.tools import tool
-# from langchain.chat_models import init_chat_model
-# import dotenv
+import dotenv
+import sys
 
-# dotenv.load_dotenv()  # Load environment variables from .env file
+from rich.console import Console
+from rich.panel import Panel
+from rich.live import Live
+from rich.status import Status
+from rich.markdown import Markdown
+from rich.table import Table
 
-# @tool("get_pod_logs", description="Get logs from a specific pod in a given namespace.")
-# def get_pod_logs(pod_name: str, namespace: str):
-#     """
-#     Get logs from a specific pod in a given namespace.
 
-#     Args:
-#         pod_name (str): The name of the pod to retrieve logs from.
-#         namespace (str): The namespace where the pod is located.
-
-#     Returns:
-#         str: The logs from the specified pod.
-#     """
-#     # Load Kubernetes configuration
-#     config.load_kube_config()
-    
-#     # Create an API client
-#     v1 = client.CoreV1Api()
-    
-#     try:
-#         # Retrieve logs from the specified pod
-#         logs = v1.read_namespaced_pod_log(name=pod_name, namespace=namespace)
-#         return logs
-#     except client.exceptions.ApiException as e:
-#         return f"An error occurred while retrieving logs: {e}"
-
-# # Initialize the model with the correct provider
-# model = init_chat_model("openai/gpt-oss-120b:free", model_provider="openrouter")
-
-# agent = create_agent(
-#     model=model,
-#     tools=[get_pod_logs],
-    
-#     system_prompt="""You are a helpful assistant that can interact with Kubernetes clusters. You can perform various operations such as creating, updating, and deleting resources, as well as retrieving information about the cluster. Always ensure to follow best practices and provide accurate information. If you are unsure about a command or its consequences, ask for clarification before proceeding. Always confirm with the user before executing any command that may have significant consequences.""",
-# )
-
-# for chunk in agent.stream("Get logs from the pod named 'my-pod' in the 'default' namespace."):
-#     print(chunk, end="", flush=True)
-
-from kubernetes import client, config
 from langchain_openrouter import ChatOpenRouter
 from langchain.agents import create_agent
 from langchain_core.tools import tool
-import dotenv
+from prompts import system_prompt, cli_tool_prompt
+from tools.k8s_tools import K8sTools
 
 dotenv.load_dotenv()
+console = Console()
 
-@tool("get_pods", description="Get a list of all pods in a given namespace.")
-def get_pods(namespace:str="default"):
-	"""
-	Get a list of all pods in a given namespace.
+k8s_provider = K8sTools()
+tools = k8s_provider.get_tools()
 
-	Args:
-		namespace (str): The namespace to retrieve pods from.
-
-	Returns:
-		str: A list of pod names in the specified namespace.
-	"""
-	config.load_kube_config()
-	v1 = client.CoreV1Api()
-	
-	try:
-		pods = v1.list_namespaced_pod(namespace=namespace)
-		pod_names = [pod.metadata.name for pod in pods.items]
-		return f"Pods in namespace '{namespace}': {', '.join(pod_names)}"
-	except Exception as e:
-		return f"An error occurred while retrieving pods: {e}"
-
-
-
-@tool("get_pod_logs", description="Get logs from a specific pod in a given namespace.")
-def get_pod_logs(pod_name: str, namespace: str):
-    """
-    Get logs from a specific pod in a given namespace.
-
-    Args:
-        pod_name (str): The name of the pod to retrieve logs from.
-        namespace (str): The namespace where the pod is located.
-    """
-    config.load_kube_config()
-    v1 = client.CoreV1Api()
-    
-    try:
-        logs = v1.read_namespaced_pod_log(name=pod_name, namespace=namespace)
-        return logs
-    except Exception as e:
-        return f"An error occurred while retrieving logs: {e}"
 
 # 1. Use the dedicated OpenRouter class
 model = ChatOpenRouter(
-    model="openai/gpt-oss-120b:free",
-    # OPENROUTER_API_KEY is automatically picked up from .env
+    model="nvidia/nemotron-3-nano-30b-a3b:free",
 )
 
 # 2. Use create_react_agent (replaces the older create_agent)
 agent = create_agent(
     model=model,
-    tools=[get_pod_logs, get_pods],
-    system_prompt="You are a helpful assistant that can interact with Kubernetes clusters."
+    tools=tools,
+    system_prompt=system_prompt + "\n\n" + cli_tool_prompt
 )
 
-# 3. FIX: Pass a dictionary with a "messages" key
-inputs = {"messages": [("user", "Get logs from the pod named product-service in the 'default' namespace.")]}
+def print_banner():
+    console.clear()
+    banner = """
+    :'######::'########::'########:::::::::::::'###:::::'######:::'########:'##::: ##:'########:
+    '##... ##: ##.... ##: ##.....:::::::::::::'## ##:::'##... ##:: ##.....:: ###:: ##:... ##..::
+    ##:::..:: ##:::: ##: ##:::::::::::::::::'##:. ##:: ##:::..::: ##::::::: ####: ##:::: ##::::
+    . ######:: ########:: ######:::'#######:'##:::. ##: ##::'####: ######::: ## ## ##:::: ##::::
+    :..... ##: ##.. ##::: ##...::::........: #########: ##::: ##:: ##...:::: ##. ####:::: ##::::
+    '##::: ##: ##::. ##:: ##:::::::::::::::: ##.... ##: ##::: ##:: ##::::::: ##:. ###:::: ##::::
+    . ######:: ##:::. ##: ########:::::::::: ##:::: ##:. ######::: ########: ##::. ##:::: ##::::
+    :......:::..:::::..::........:::::::::::..:::::..:::......::::........::..::::..:::::..::::
+    """
+    console.print(banner, style="bold yellow")
+    console.print("[bold blue]SRE AI Agent v1.0[/bold blue] | [dim]Type 'quit' or 'exit' to close[/dim]\n")
 
-# Stream the output
-for chunk in agent.stream(inputs, stream_mode="values"):
-    # Print the most recent message in the state
-    latest_message = chunk["messages"][-1]
-    latest_message.pretty_print()
+
+if __name__ == "__main__":
+
+    print_banner()
+
+    while True:
+        # Using Rich's prompt style
+        user_query = console.input("[bold green]➜[/bold green] [bold white]What's your query?[/bold white] : ")
+
+        if user_query.lower() in ["quit", "exit"]:
+            console.print("[bold red]Exiting SRE Agent. Goodbye![/bold red]")
+            sys.exit(0)
+
+        inputs = {"messages": [("user", user_query)]}
+        final_message = None
+
+        # Use Status for the "Thinking" spinner
+        with console.status("[bold blue]Analyzing cluster context...", spinner="dots") as status:
+            for chunk in agent.stream(inputs, stream_mode="updates"):
+                for node_name, data in chunk.items():
+                    
+                    if node_name == "tools":
+                        for msg in data.get("messages", []):
+                            # Create a nice panel for tool executions
+                            console.print(Panel(
+                                f"[dim]{msg.content[:200]}...[/dim]", 
+                                title=f"[bold cyan]🔧 Tool Executed:[/bold cyan] {msg.name}",
+                                border_style="blue",
+                                expand=False
+                            ))
+                            # Update spinner text to show progress
+                            status.update(f"[bold blue]Processing {msg.name} results...")
+                    
+                    if node_name == "model":
+                        # Capture the last AI message
+                        messages = data.get("messages", [])
+                        if messages:
+                            final_message = messages[-1]
+
+        # Final Analysis Rendering
+        if final_message:
+            console.print("\n" + "━" * 50, style="dim")
+            console.print("[bold yellow]ANALYSIS[/bold yellow]")
+            
+            # Use Markdown renderer to make the AI output look like a pro CLI tool
+            # (Matches headings, lists, and tables automatically)
+            md = Markdown(final_message.content)
+            console.print(md)
+            console.print("━" * 50 + "\n", style="dim")

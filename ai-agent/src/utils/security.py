@@ -1,5 +1,4 @@
 import re
-from typing import str
 
 
 def sanitize_logs(logs: str) -> str:

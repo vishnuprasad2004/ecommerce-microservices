@@ -11,8 +11,10 @@ Provides clean interface to Kubernetes API for:
 """
 
 from kubernetes import client, config
+from langchain_core.tools import tool, StructuredTool
 from kubernetes.client.rest import ApiException
 from typing import Dict, List, Optional
+from utils.security import sanitize_logs
 import json
 
 
@@ -44,6 +46,42 @@ class K8sTools:
         except Exception as e:
             raise Exception(f"Failed to initialize K8s client: {e}")
     
+    def get_tools(self) -> List[StructuredTool]:
+        """Returns a list of LangChain-compatible tools from this class."""
+        return [
+            StructuredTool.from_function(
+                func=self.get_pod_status,
+                name="get_pod_status",
+                description="Get the current status of Kubernetes pods in a namespace. Useful to check if pods are running, crashed, or pending."
+            ),
+            StructuredTool.from_function(
+                func=self.get_pod_logs,
+                name="get_pod_logs",
+                description="Fetch recent logs from a pod. Helps diagnose crashes and errors."
+            ),
+            StructuredTool.from_function(
+                func=self.get_pod_events,
+                name="get_pod_events",
+                description="Get Kubernetes events related to a pod. Useful for debugging failures and restarts."
+            ),
+            StructuredTool.from_function(
+                func=self.get_resource_usage,
+                name="get_resource_usage",
+                description="Get CPU and memory usage for a pod. Requires metrics-server."
+            ),
+            StructuredTool.from_function(
+                func=self.get_deployment_config,
+                name="get_deployment_config",
+                description="Get deployment configuration including replicas, image, and resources."
+            ),
+            StructuredTool.from_function(
+                func=self.get_service_endpoints,
+                name="get_service_endpoints",
+                description="Get service endpoints and check which pods are backing a service."
+            )
+        ]
+    
+
     def get_pod_status(self, namespace: str, pod_name: Optional[str] = None) -> Dict:
         """
         Get current status of pods
@@ -130,6 +168,7 @@ class K8sTools:
                 kwargs["container"] = container_name
             
             logs = self.core_v1.read_namespaced_pod_log(**kwargs)
+            logs = sanitize_logs(logs)
             return logs
         
         except ApiException as e:
