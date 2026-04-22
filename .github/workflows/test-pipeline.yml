@@ -1,0 +1,12 @@
+name: Test and Validate the CI/CD pipeline
+
+on:
+  push:
+    paths:
+      - '.github/workflows/**'
+
+jobs:
+  test-workflow-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Workflow syntax is valid!"
