@@ -9,6 +9,20 @@ on:
       - 'product-service/**'
       - 'order-service/**'
 
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Which service to build (or "all")'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - api-gateway
+          - user-service
+          - product-service
+          - order-service
+
 env:
   DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
