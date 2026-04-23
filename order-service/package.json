@@ -17,14 +17,15 @@
     "express": "^5.2.1",
     "pg": "^8.16.3",
     "postgres": "^3.4.8",
-    "uuid": "^13.0.0"
+    "uuid": "^14.0.0",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.6",
     "@types/pg": "^8.16.0",
     "dotenv": "^17.2.3",
-    "drizzle-kit": "^0.31.8",
+    "drizzle-kit": "^0.31.10",
     "typescript": "^5.9.3"
   }
 }
