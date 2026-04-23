@@ -14,8 +14,8 @@ spec:
     spec:
       containers:
       - name: order-service
-        image: order-service:latest
-        imagePullPolicy: Never # for local development, change to "IfNotPresent" or remove for production
+        image: vishnuprasadkorada/order-service:latest
+        imagePullPolicy: Always # for local development, change to "IfNotPresent" or remove for production
         resources:
           requests:
             memory: "64Mi"

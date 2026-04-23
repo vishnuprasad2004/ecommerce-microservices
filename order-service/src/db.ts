@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from "pg";
 import * as schema from './schema.js';
+import logger from './utils/logger.js';
 
 // THE BUG HERE:
 // When deployed to prod in local k8s instance through minikube, the order-service successfully connects to the database, but fails to connect to the product-service and user-service, which results in 500 errors when trying to create orders. 
@@ -19,8 +20,8 @@ import * as schema from './schema.js';
 //   dotenv.config();
 // }
 
-console.log('[DB]: Initializing database connection...');
-console.log('[DB]: Connection string exists:', !!process.env.POSTGRES_DB_URL);
+logger.info('[DB]: Initializing database connection...');
+logger.info('[DB]: Connection string exists:', !!process.env.POSTGRES_DB_URL);
 
 
 const pool = new Pool({
@@ -31,12 +32,12 @@ const pool = new Pool({
 });
 
 pool.on("connect", () => {
-  console.log("[DB CONNECTION]: Successfully connected to the database");
+  logger.info("[DB CONNECTION]: Successfully connected to the database");
 });
 
 pool.on("error", (error) => {
   console.log("[DB CONNECTION]: Something went wrong");
-  console.error(error);
+  logger.error(error);
   process.exit(1); // Exit the process with an error code
 });
 
